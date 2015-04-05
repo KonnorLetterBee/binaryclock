@@ -5,17 +5,17 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 
 public class ClockState {
-
+	
 	public static enum HourFormat {
 		H12,
 		H24;
 	}
-	
+
 	public static enum SectionStyle {
 		DIGIT,
 		GROUP;
 	}
-	
+
 	public static int[] binary (int value, int max) {
 		int pos = maxBinaryLength(max);
 		int curr = value;
@@ -26,7 +26,7 @@ public class ClockState {
 		}
 		return bin;
 	}
-	
+
 	public static int[][] combineArrays (int[][] ... arrays) {
 		int width = 0, height = 0;
 		for (int[][] ar : arrays) {
@@ -41,57 +41,65 @@ public class ClockState {
 			System.arraycopy(arC, 0, out[x++], height - arC.length, arC.length);
 		return out;
 	}
-
+	
 	public static int[][] incrementTableVals (int[][] table) {
 		for (int[] ar : table)
 			for (int i = 0; i < ar.length; i++)
 			ar[i] += 1;
 		return table;
 	}
-
+	
 	public static int maxBinaryLength (int value) {
 		return value == 0 ? 0 : (int)Math.floor((Math.log(value) / Math.log(2)) + 1);
 	}
-	
+
 	private int[][] cells;
 	private Calendar currentTime;
 	private HourFormat hourFormat = HourFormat.H24;
 	private SectionStyle hourStyle = SectionStyle.GROUP, minuteStyle = SectionStyle.GROUP, secondStyle = SectionStyle.GROUP;
 	private int lastSecs = -1;
-	
+
 	public int[][] getCells () {
 		return cells;
 	}
-
+	
 	public int[][] hours (HourFormat hourStyle, SectionStyle secStyle) {
 		boolean h24 = hourStyle == HourFormat.H24;
 		return ms(secStyle, currentTime.get(h24 ? Calendar.HOUR_OF_DAY : Calendar.HOUR), h24 ? 24 : 12);
 	}
-
+	
 	public int[][] minutes (SectionStyle secStyle) {
 		return ms(secStyle, currentTime.get(Calendar.MINUTE), 60);
 	}
-
+	
 	public int[][] seconds (SectionStyle secStyle) {
 		return ms(secStyle, currentTime.get(Calendar.SECOND), 60);
 	}
-
-	public void setHourStyle (HourFormat f) {
+	
+	public void setHourFormat (HourFormat f) {
 		hourFormat = f;
 	}
-	
+
 	public void setHourStyle (SectionStyle s) {
 		hourStyle = s;
 	}
-
+	
 	public void setMinuteStyle (SectionStyle s) {
 		minuteStyle = s;
 	}
-
+	
+	public void setOrientation (boolean portrait) {
+		SectionStyle style = portrait ? SectionStyle.GROUP : SectionStyle.DIGIT;
+		setHourStyle(style);
+		setMinuteStyle(style);
+		setSecondStyle(style);
+		update();
+	}
+	
 	public void setSecondStyle (SectionStyle s) {
 		secondStyle = s;
 	}
-	
+
 	public void update () {
 		currentTime = new GregorianCalendar();
 		int currSecs = currentTime.get(Calendar.SECOND);
@@ -103,7 +111,7 @@ public class ClockState {
 		int[][] seconds = seconds(secondStyle);
 		cells = combineArrays(hours, minutes, seconds);
 	}
-	
+
 	private int[][] ms (SectionStyle secStyle, int value, int max) {
 		int[][] table;
 		if (secStyle == SectionStyle.GROUP)
