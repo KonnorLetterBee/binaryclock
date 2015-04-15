@@ -27,25 +27,28 @@ public class ClockState {
 		return bin;
 	}
 
-	public static int[][] combineArrays (int[][] ... arrays) {
-		int width = 0, height = 0;
-		for (int[][] ar : arrays) {
-			width += ar.length;
-			for (int[] arC : ar)
-			height = Math.max(height, arC.length);
-		}
-		int[][] out = new int[width][height];
-		int x = 0;
+	public static int[][][] combineArrays (int[][] ... arrays) {
+		int height = 0;
 		for (int[][] ar : arrays)
 			for (int[] arC : ar)
-			System.arraycopy(arC, 0, out[x++], height - arC.length, arC.length);
+				height = Math.max(height, arC.length);
+		int[][][] out = new int[arrays.length][][];
+		for (int g = 0; g < arrays.length; g++) {
+			int[][] ar = arrays[g];
+			out[g] = new int[ar.length][];
+			for (int x = 0; x < ar.length; x++) {
+				int[] arC = ar[x];
+				out[g][x] = new int[height];
+				System.arraycopy(arC, 0, out[g][x], height - arC.length, arC.length);
+			}
+		}
 		return out;
 	}
 	
 	public static int[][] incrementTableVals (int[][] table) {
 		for (int[] ar : table)
 			for (int i = 0; i < ar.length; i++)
-			ar[i] += 1;
+				ar[i] += 1;
 		return table;
 	}
 	
@@ -53,27 +56,29 @@ public class ClockState {
 		return value == 0 ? 0 : (int)Math.floor((Math.log(value) / Math.log(2)) + 1);
 	}
 
-	private int[][] cells;
+	private int[][][] cells;
 	private Calendar currentTime;
 	private HourFormat hourFormat = HourFormat.H24;
 	private SectionStyle hourStyle = SectionStyle.GROUP, minuteStyle = SectionStyle.GROUP, secondStyle = SectionStyle.GROUP;
 	private int lastSecs = -1;
+	private final int lastMins = -1;
+	private final int lastHours = -1;
 
-	public int[][] getCells () {
+	public int[][][] getCells () {
 		return cells;
 	}
 	
 	public int[][] hours (HourFormat hourStyle, SectionStyle secStyle) {
 		boolean h24 = hourStyle == HourFormat.H24;
-		return ms(secStyle, currentTime.get(h24 ? Calendar.HOUR_OF_DAY : Calendar.HOUR), h24 ? 24 : 12);
+		return minSec(secStyle, currentTime.get(h24 ? Calendar.HOUR_OF_DAY : Calendar.HOUR), h24 ? 24 : 12);
 	}
 	
 	public int[][] minutes (SectionStyle secStyle) {
-		return ms(secStyle, currentTime.get(Calendar.MINUTE), 60);
+		return minSec(secStyle, currentTime.get(Calendar.MINUTE), 60);
 	}
 	
 	public int[][] seconds (SectionStyle secStyle) {
-		return ms(secStyle, currentTime.get(Calendar.SECOND), 60);
+		return minSec(secStyle, currentTime.get(Calendar.SECOND), 60);
 	}
 	
 	public void setHourFormat (HourFormat f) {
@@ -100,6 +105,8 @@ public class ClockState {
 		secondStyle = s;
 	}
 
+	/** Updates the stored time and, if the seconds value has changed, update the
+	 * stored values array */
 	public void update () {
 		currentTime = new GregorianCalendar();
 		int currSecs = currentTime.get(Calendar.SECOND);
@@ -112,7 +119,13 @@ public class ClockState {
 		cells = combineArrays(hours, minutes, seconds);
 	}
 
-	private int[][] ms (SectionStyle secStyle, int value, int max) {
+	/** Converts a value into an array of binary cells organized by the rules of a
+	 * particular {@link SectionStyle}
+	 * @param secStyle the style to organize the section in
+	 * @param value the current value of the sequence
+	 * @param max the max value of the sequence
+	 * @return the properly formatted {@link int[][]} */
+	private int[][] minSec (SectionStyle secStyle, int value, int max) {
 		int[][] table;
 		if (secStyle == SectionStyle.GROUP)
 			table = new int[][] { binary(value, max) };
